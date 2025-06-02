@@ -1,192 +1,109 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UAE Pass Redirect</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f4f4f9;
-            color: #333;
-            text-align: center;
-            padding: 20px;
-        }
-        .container {
-            padding: 30px;
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #1a73e8; /* Blue color, often associated with tech/apps */
-            margin-bottom: 15px;
-        }
-        p {
-            font-size: 1.1em;
-            line-height: 1.6;
-            margin-bottom: 25px;
-        }
-        .spinner {
-            border: 5px solid rgba(0, 0, 0, 0.1);
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border-left-color: #1a73e8;
-            animation: spin 1.2s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .footer-links a {
-            color: #555;
-            text-decoration: none;
-            font-size: 0.9em;
-            margin: 0 10px;
-        }
-        .footer-links a:hover {
-            text-decoration: underline;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UAE Pass smart link (stage)</title>
+
+  <!-- iOS Smart‑App‑Banner; keep the deeplink blank until you know it. -->
+  <meta name="apple-itunes-app" content="app-id=1377158818, app-argument=UAEPASS_DEEPLINK_GOES_HERE" />
+
+  <style>
+    :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+    body{display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#f4f4f9;color:#333}
+    .card{padding:2.5rem 2rem;background:#fff;border-radius:12px;box-shadow:0 6px 14px rgba(0,0,0,.12);text-align:center}
+    h1{margin-top:0;color:#0060ff;font-size:1.6rem}
+    #msg{margin:.75rem 0 1.5rem;font-size:1.05rem;line-height:1.55}
+    .spin{width:42px;height:42px;border-radius:50%;border:5px solid rgba(0,0,0,.1);border-left-color:#0060ff;animation:spin 1s linear infinite;margin:0 auto}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .links{display:none;margin-top:2rem}
+    .links a{display:inline-block;margin:0 .75rem;font-size:.9rem;text-decoration:none;color:#0060ff}
+    .links a:hover{text-decoration:underline}
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>UAE Pass</h1>
-        <p id="message">Checking for UAE Pass app and redirecting...</p>
-        <div class="spinner" id="spinner"></div>
-        <div class="footer-links" id="footer-links" style="display: none; margin-top: 30px;">
-            <p>If redirection doesn't work, please use the links below:</p>
-            <a id="manual-ios-link" href="#">Get on App Store</a>
-            <a id="manual-android-link" href="#">Get on Google Play</a>
-        </div>
+  <div class="card">
+    <h1>Opening UAE Pass…</h1>
+    <div id="msg">Checking your device…</div>
+    <div class="spin" id="spinner"></div>
+    <div class="links" id="manual">
+      <p>If nothing happens, tap the right store:</p>
+      <a id="iosStore"     href="https://apps.apple.com/ae/app/uae-pass/id1377158818">App Store</a>
+      <a id="androidStore" href="https://play.google.com/store/apps/details?id=ae.uaepass.mainapp&hl=en">Google Play</a>
     </div>
+  </div>
 
-    <script>
-        // --- Configuration ---
-        const config = {
-            iosAppStoreUrl: "https://apps.apple.com/ae/app/uae-pass/id1377158818",
-            androidPlayStoreUrl: "https://play.google.com/store/apps/details?id=ae.uaepass.mainapp&hl=en",
-            // IMPORTANT: This is a GUESS for the URI scheme.
-            // You need to find the correct URI scheme for UAE Pass to open it
-            // or to open a specific page within it.
-            // Examples: "uaepass://", "uaepass://open", "uaepass://profile", "uaepass://some-action?data=example"
-            // If this URI is incorrect or not supported, it will always fallback to the app store.
-            appUriScheme: "uaepass://open", // Generic attempt to open the app
-            fallbackTimeout: 2500 // Milliseconds to wait before assuming app didn't open
-        };
+<script>
+// ————— CONFIG —————
+const CONF = {
+  // 1️⃣ Android staging deep‑link (works if the STG app is installed)
+  androidScheme:  'uaepassstg://presentment/?clientid=digivault_stage&requestid=dv12345678&successurl=&failureurl=',
 
-        // --- Elements ---
-        const messageElement = document.getElementById('message');
-        const spinnerElement = document.getElementById('spinner');
-        const footerLinksElement = document.getElementById('footer-links');
-        const manualIosLink = document.getElementById('manual-ios-link');
-        const manualAndroidLink = document.getElementById('manual-android-link');
+  // 2️⃣ Intent wrapper = automatic Play‑Store fallback when not installed
+  androidIntent: 'intent://presentment/?clientid=digivault_stage&requestid=dv12345678&successurl=&failureurl=#Intent;scheme=uaepassstg;package=ae.uaepass.mainapp;end',
 
-        manualIosLink.href = config.iosAppStoreUrl;
-        manualAndroidLink.href = config.androidPlayStoreUrl;
+  // 3️⃣ iOS deep‑link — leave blank for now, fill it once confirmed
+  iosScheme: 'UAEPASS_DEEPLINK_GOES_HERE',
 
-        // --- Logic ---
-        function getOS() {
-            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-            if (/android/i.test(userAgent)) {
-                return "Android";
-            }
-            // iOS detection from: http://stackoverflow.com/a/9039885/177710
-            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-                return "iOS";
-            }
-            return "unknown";
-        }
+  iosStore:  'https://apps.apple.com/ae/app/uae-pass/id1377158818',
+  playStore: 'https://play.google.com/store/apps/details?id=ae.uaepass.mainapp&hl=en',
+  wait: 1800 // ms before assuming the app didn’t open
+};
 
-        function attemptToOpenApp(os) {
-            messageElement.textContent = "Attempting to open UAE Pass app...";
+// ————— DOM refs —————
+const msg     = document.getElementById('msg');
+const spinner = document.getElementById('spinner');
+const manual  = document.getElementById('manual');
 
-            // Try to open the app using its URI scheme
-            window.location.href = config.appUriScheme;
+function detectOS(){
+  const ua = navigator.userAgent || navigator.vendor || window.opera;
+  if (/android/i.test(ua))             return 'android';
+  if (/iPad|iPhone|iPod/.test(ua))     return 'ios';
+  return 'other';
+}
 
-            // Fallback mechanism: If the app doesn't open after a timeout,
-            // redirect to the app store.
-            const startTime = Date.now();
+function openApp(){
+  const os = detectOS();
+  let hidden = false;
+  const start = Date.now();
 
-            // Use visibilitychange event if available, as it's more reliable
-            // to detect if the browser tab was hidden (app opened)
-            let appOpened = false;
-            const visibilityChangeHandler = () => {
-                if (document.hidden) {
-                    appOpened = true;
-                    // Optional: could clear timeout here, but the timeout mainly serves as a fallback
-                    // if the app is not installed, in which case visibility doesn't change.
-                }
-            };
-            document.addEventListener("visibilitychange", visibilityChangeHandler);
+  document.addEventListener('visibilitychange',() => hidden = document.hidden);
 
+  if (os === 'android'){
+    location.href = CONF.androidIntent;      // single shot handles both open & fallback
+  } else if (os === 'ios'){
+    if (CONF.iosScheme && CONF.iosScheme !== 'UAEPASS_DEEPLINK_GOES_HERE'){
+      location.href = CONF.iosScheme;
+    } else {
+      fallback('ios'); return;
+    }
+  } else {
+    fallback('other'); return;
+  }
 
-            setTimeout(() => {
-                document.removeEventListener("visibilitychange", visibilityChangeHandler);
-                const timeElapsed = Date.now() - startTime;
+  setTimeout(()=>{
+    if (!hidden && Date.now() - start < CONF.wait + 500){
+      fallback(os);
+    }
+  }, CONF.wait);
+}
 
-                // If appOpened is true (visibility changed) or if a significant amount of time passed
-                // without the page being in focus (heuristic for app opening),
-                // we assume the app might have opened or is trying to open.
-                // This part is tricky because the user might switch back to the browser.
-                // The primary fallback is if `appOpened` is false after the timeout.
+function fallback(os){
+  spinner.style.display = 'none';
+  manual.style.display  = 'block';
+  if (os === 'ios'){
+    msg.textContent = 'Redirecting to the App Store…';
+    location.href = CONF.iosStore;
+  } else if (os === 'android'){
+    msg.textContent = 'Redirecting to Google Play…';
+    // In most browsers the intent URI already did this; this is a safety net
+    setTimeout(()=>location.href = CONF.playStore, 200);
+  } else {
+    msg.textContent = 'Please open this link on your phone and install UAE Pass.';
+  }
+}
 
-                if (!appOpened && timeElapsed < (config.fallbackTimeout + 500) ) {
-                    // Heuristic: If less than timeout + a bit, and visibility didn't change,
-                    // assume app didn't open or isn't installed.
-                    messageElement.textContent = "UAE Pass app not found or could not be opened. Redirecting to store...";
-                    redirectToStore(os);
-                } else if (appOpened) {
-                    messageElement.textContent = "App should be opening. If not, please use manual links.";
-                    spinnerElement.style.display = 'none';
-                    footerLinksElement.style.display = 'block';
-                    // At this point, the app *should* have opened.
-                    // No further action needed on this page if it successfully opened.
-                } else {
-                    // Fallback if timeout occurred but visibility state is unclear (e.g. user returned fast)
-                    // This is a less certain state, offer manual links.
-                    messageElement.textContent = "Checking complete. If the app didn't open, please use store links.";
-                    spinnerElement.style.display = 'none';
-                    footerLinksElement.style.display = 'block';
-                }
-
-            }, config.fallbackTimeout);
-        }
-
-        function redirectToStore(os) {
-            spinnerElement.style.display = 'none';
-            footerLinksElement.style.display = 'block';
-            if (os === "iOS") {
-                messageElement.textContent = "Redirecting to Apple App Store...";
-                window.location.href = config.iosAppStoreUrl;
-            } else if (os === "Android") {
-                messageElement.textContent = "Redirecting to Google Play Store...";
-                window.location.href = config.androidPlayStoreUrl;
-            } else {
-                messageElement.textContent = "Unsupported OS. Please search for UAE Pass in your app store.";
-            }
-        }
-
-        // --- Start ---
-        window.onload = () => {
-            const os = getOS();
-            if (os === "iOS" || os === "Android") {
-                attemptToOpenApp(os);
-            } else {
-                messageElement.textContent = "This service is intended for iOS and Android devices. Please search for UAE Pass in your app store or visit their website.";
-                spinnerElement.style.display = 'none';
-                footerLinksElement.style.display = 'block';
-                // Optionally redirect to a desktop fallback URL if you have one:
-                // window.location.href = "https://uaepass.ae/";
-            }
-        };
-    </script>
+window.addEventListener('load', openApp);
+</script>
 </body>
 </html>
