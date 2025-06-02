@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>UAE Pass smart link (stage)</title>
+  <title>UAE Pass smart link – staging</title>
 
-  <!-- iOS Smart‑App‑Banner; keep the deeplink blank until you know it. -->
-  <meta name="apple-itunes-app" content="app-id=1377158818, app-argument=UAEPASS_DEEPLINK_GOES_HERE" />
+  <!-- iOS Smart‑App‑Banner (deeplink placeholder still TBD) -->
+  <meta name="apple-itunes-app" content="app-id=1377158818, app-argument=UAEPASS_IOS_DEEPLINK_HERE" />
 
   <style>
     :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
     body{display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#f4f4f9;color:#333}
-    .card{padding:2.5rem 2rem;background:#fff;border-radius:12px;box-shadow:0 6px 14px rgba(0,0,0,.12);text-align:center}
-    h1{margin-top:0;color:#0060ff;font-size:1.6rem}
-    #msg{margin:.75rem 0 1.5rem;font-size:1.05rem;line-height:1.55}
+    .card{padding:2.5rem 2rem;background:#fff;border-radius:12px;box-shadow:0 6px 14px rgba(0,0,0,.12);text-align:center;max-width:28rem}
+    h1{margin:0 0 1rem;color:#0060ff;font-size:1.55rem}
+    #msg{margin-bottom:1.4rem;font-size:1.05rem;line-height:1.55}
     .spin{width:42px;height:42px;border-radius:50%;border:5px solid rgba(0,0,0,.1);border-left-color:#0060ff;animation:spin 1s linear infinite;margin:0 auto}
     @keyframes spin{to{transform:rotate(360deg)}}
     .links{display:none;margin-top:2rem}
@@ -23,8 +23,8 @@
 </head>
 <body>
   <div class="card">
-    <h1>Opening UAE Pass…</h1>
-    <div id="msg">Checking your device…</div>
+    <h1>Opening UAE Pass…</h1>
+    <div id="msg">Checking your device&hellip;</div>
     <div class="spin" id="spinner"></div>
     <div class="links" id="manual">
       <p>If nothing happens, tap the right store:</p>
@@ -34,76 +34,103 @@
   </div>
 
 <script>
-// ————— CONFIG —————
-const CONF = {
-  // 1️⃣ Android staging deep‑link (works if the STG app is installed)
-  androidScheme:  'uaepassstg://presentment/?clientid=digivault_stage&requestid=dv12345678&successurl=&failureurl=',
+// ————————————————————————————————————————————————
+//  CONFIGURE YOUR DEEPLINKS HERE
+// ————————————————————————————————————————————————
+const CFG = {
+  // Android staging deep‐link (opens if staging build is installed):
+  schemeAndroid: 'uaepassstg://presentment/?clientid=digivault_stage&requestid=dv12345678&successurl=&failureurl=',
 
-  // 2️⃣ Intent wrapper = automatic Play‑Store fallback when not installed
-  androidIntent: 'intent://presentment/?clientid=digivault_stage&requestid=dv12345678&successurl=&failureurl=#Intent;scheme=uaepassstg;package=ae.uaepass.mainapp;end',
+  // Intent URI (Chrome / Edge ≥25) – automatically falls back to Play Store if the package is missing
+  intentAndroid: 'intent://presentment/?clientid=digivault_stage&requestid=dv12345678&successurl=&failureurl=#Intent;scheme=uaepassstg;package=ae.uaepass.mainapp;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dae.uaepass.mainapp;end',
 
-  // 3️⃣ iOS deep‑link — leave blank for now, fill it once confirmed
-  iosScheme: 'UAEPASS_DEEPLINK_GOES_HERE',
+  // iOS deep‑link placeholder (fill in when you know it)
+  schemeIOS: 'UAEPASS_IOS_DEEPLINK_HERE',
 
   iosStore:  'https://apps.apple.com/ae/app/uae-pass/id1377158818',
   playStore: 'https://play.google.com/store/apps/details?id=ae.uaepass.mainapp&hl=en',
-  wait: 1800 // ms before assuming the app didn’t open
+  wait: 1600 // ms before considering the attempt failed
 };
 
-// ————— DOM refs —————
-const msg     = document.getElementById('msg');
-const spinner = document.getElementById('spinner');
-const manual  = document.getElementById('manual');
+// ————————————————————————————————————————————————
+//  ELEMENTS
+// ————————————————————————————————————————————————
+const $msg     = document.getElementById('msg');
+const $spinner = document.getElementById('spinner');
+const $manual  = document.getElementById('manual');
 
-function detectOS(){
+// ————————————————————————————————————————————————
+//  UTILS
+// ————————————————————————————————————————————————
+function os(){
   const ua = navigator.userAgent || navigator.vendor || window.opera;
-  if (/android/i.test(ua))             return 'android';
-  if (/iPad|iPhone|iPod/.test(ua))     return 'ios';
+  if (/android/i.test(ua))                 return 'android';
+  if (/iphone|ipad|ipod/i.test(ua))        return 'ios';
   return 'other';
 }
 
-function openApp(){
-  const os = detectOS();
+function openIframe(url){
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.src = url;
+  document.body.appendChild(iframe);
+}
+
+// ————————————————————————————————————————————————
+//  MAIN FLOW
+// ————————————————————————————————————————————————
+function attemptOpen(){
+  const platform = os();
   let hidden = false;
   const start = Date.now();
 
-  document.addEventListener('visibilitychange',() => hidden = document.hidden);
+  // Detect when the browser tab goes to background (app likely opened)
+  document.addEventListener('visibilitychange',() => { hidden = document.hidden; });
 
-  if (os === 'android'){
-    location.href = CONF.androidIntent;      // single shot handles both open & fallback
-  } else if (os === 'ios'){
-    if (CONF.iosScheme && CONF.iosScheme !== 'UAEPASS_DEEPLINK_GOES_HERE'){
-      location.href = CONF.iosScheme;
+  if (platform === 'android'){
+    // 1) Chrome/Edge/Samsung Browser ≥ 25 ‑ use intent://
+    location.href = CFG.intentAndroid;
+
+    // 2) Older browsers (or if intent fails quickly) – fallback to scheme via iframe after a brief delay
+    setTimeout(() => openIframe(CFG.schemeAndroid), 150);
+  }
+  else if (platform === 'ios'){
+    if (CFG.schemeIOS && CFG.schemeIOS !== 'UAEPASS_IOS_DEEPLINK_HERE'){
+      // Universal Link preferred, but scheme works if configured.
+      location.href = CFG.schemeIOS;
     } else {
-      fallback('ios'); return;
+      fallback('ios'); return; // no scheme yet
     }
-  } else {
+  }
+  else {
     fallback('other'); return;
   }
 
-  setTimeout(()=>{
-    if (!hidden && Date.now() - start < CONF.wait + 500){
-      fallback(os);
+  // After WAIT ms, if page is still foreground → assume app did not launch.
+  setTimeout(() => {
+    if (!hidden && Date.now() - start < CFG.wait + 400){
+      fallback(platform);
     }
-  }, CONF.wait);
+  }, CFG.wait);
 }
 
-function fallback(os){
-  spinner.style.display = 'none';
-  manual.style.display  = 'block';
-  if (os === 'ios'){
-    msg.textContent = 'Redirecting to the App Store…';
-    location.href = CONF.iosStore;
-  } else if (os === 'android'){
-    msg.textContent = 'Redirecting to Google Play…';
-    // In most browsers the intent URI already did this; this is a safety net
-    setTimeout(()=>location.href = CONF.playStore, 200);
-  } else {
-    msg.textContent = 'Please open this link on your phone and install UAE Pass.';
+function fallback(platform){
+  $spinner.style.display = 'none';
+  $manual.style.display  = 'block';
+  if (platform === 'ios'){
+    $msg.textContent = 'Redirecting to the App Store…';
+    location.replace(CFG.iosStore);
+  }
+  else if (platform === 'android'){
+    $msg.textContent = 'Redirecting to Google Play…';
+    location.replace(CFG.playStore);
+  }
+  else {
+    $msg.textContent = 'Please open this link on your phone to install UAE Pass.';
   }
 }
 
-window.addEventListener('load', openApp);
+window.addEventListener('load', attemptOpen);
 </script>
 </body>
 </html>
