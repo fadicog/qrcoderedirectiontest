@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>UAE Pass smart link</title>
+  <title>UAE Pass smart link</title>
 
-  <!-- iOS Smart‑App‑Banner now points at the real deep link -->
+  <!-- iOS Smart-App-Banner with deep link → user can tap “Open” if banner appears. -->
   <meta name="apple-itunes-app" content="app-id=1377158818, app-argument=uaepass://presentment?action=PRESENTMENT&clientid=tdra_dv_insurance_mob_prod&requestid=12345678" />
 
   <style>
@@ -23,53 +23,48 @@
 </head>
 <body>
   <div class="card">
-    <h1>Opening UAE Pass…</h1>
-    <div id="msg">Checking your device&hellip;</div>
+    <h1>Opening UAE Pass…</h1>
+    <div id="msg">Trying to launch the UAE Pass app&hellip;</div>
     <div class="spin" id="spinner"></div>
     <div class="links" id="manual">
-      <p>If nothing happens, tap the right store:</p>
-      <a id="iosStore"     href="https://apps.apple.com/ae/app/uae-pass/id1377158818">App Store</a>
-      <a id="androidStore" href="https://play.google.com/store/apps/details?id=ae.uaepass.mainapp&hl=en">Google Play</a>
+      <p>If the app didn’t open, use these links:</p>
+      <a id="iosStore"     href="https://apps.apple.com/ae/app/uae-pass/id1377158818">Open in App Store</a>
+      <a id="androidStore" href="https://play.google.com/store/apps/details?id=ae.uaepass.mainapp&hl=en">Open in Google Play</a>
     </div>
   </div>
 
 <script>
 // ————————————————————————————————————————————————
-//  CONFIGURE YOUR DEEPLINKS HERE
+//  CONFIG
 // ————————————————————————————————————————————————
 const CFG = {
-  // Android production deep‑link (opens if app is installed):
+  // Android deep-link
   schemeAndroid: 'uaepass://presentment?clientid=tdra_dv_insurance_mob_prod&requestid=dv12345678&successurl=&failureurl=',
-
-  // Intent URI (Chrome / Edge ≥25) – automatically falls back to Play Store if the package is missing
   intentAndroid: 'intent://presentment?clientid=tdra_dv_insurance_mob_prod&requestid=dv12345678&successurl=&failureurl=#Intent;scheme=uaepass;package=ae.uaepass.mainapp;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dae.uaepass.mainapp;end',
 
-  // iOS deep‑link provided by you:
+  // iOS deep-link
   schemeIOS: 'uaepass://presentment?action=PRESENTMENT&clientid=tdra_dv_insurance_mob_prod&requestid=12345678',
 
   iosStore:  'https://apps.apple.com/ae/app/uae-pass/id1377158818',
   playStore: 'https://play.google.com/store/apps/details?id=ae.uaepass.mainapp&hl=en',
-  wait: 1600 // ms before considering the attempt failed
+  wait: 1400 // ms before showing manual links / store suggestion
 };
 
 // ————————————————————————————————————————————————
-//  ELEMENTS
+//  Helpers
 // ————————————————————————————————————————————————
-const $msg     = document.getElementById('msg');
+const $msg = document.getElementById('msg');
 const $spinner = document.getElementById('spinner');
-const $manual  = document.getElementById('manual');
+const $manual = document.getElementById('manual');
 
-// ————————————————————————————————————————————————
-//  UTILS
-// ————————————————————————————————————————————————
-function os(){
+function deviceOS(){
   const ua = navigator.userAgent || navigator.vendor || window.opera;
-  if (/android/i.test(ua))                 return 'android';
-  if (/iphone|ipad|ipod/i.test(ua))        return 'ios';
+  if (/android/i.test(ua)) return 'android';
+  if (/iphone|ipad|ipod/i.test(ua)) return 'ios';
   return 'other';
 }
 
-function openIframe(url){
+function openHiddenIframe(url){
   const iframe = document.createElement('iframe');
   iframe.style.display = 'none';
   iframe.src = url;
@@ -77,54 +72,52 @@ function openIframe(url){
 }
 
 // ————————————————————————————————————————————————
-//  MAIN FLOW
+//  Launcher logic
 // ————————————————————————————————————————————————
-function attemptOpen(){
-  const platform = os();
-  let hidden = false;
-  const start = Date.now();
+function launch(){
+  const os = deviceOS();
+  let wentBackground = false;
+  const started = Date.now();
 
-  // Detect when the browser tab goes to background (app likely opened)
-  document.addEventListener('visibilitychange',() => { hidden = document.hidden; });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) wentBackground = true;
+  });
 
-  if (platform === 'android'){
-    location.href = CFG.schemeAndroid;
-    setTimeout(() => {
-      if (!hidden) location.href = CFG.intentAndroid;
-    }, 300);
+  if (os === 'android'){
+    // Use intent fallback delayed a bit for browsers that ignore scheme
+    openHiddenIframe(CFG.schemeAndroid);
+    setTimeout(() => { if (!wentBackground) location.href = CFG.intentAndroid; }, 250);
   }
-  else if (platform === 'ios'){
-    location.href = CFG.schemeIOS;
+  else if (os === 'ios'){
+    // iOS: scheme via top-level navigation (most reliable)
+    window.location = CFG.schemeIOS;
   }
   else {
-    fallback('other'); return;
+    showManual('other'); return;
   }
 
-  // After WAIT ms, if page is still in foreground → app probably not launched
+  // Show manual options if still foreground after WAIT
   setTimeout(() => {
-    if (!hidden && Date.now() - start < CFG.wait + 400){
-      fallback(platform);
+    if (!wentBackground && Date.now() - started < CFG.wait + 200){
+      showManual(os);
     }
   }, CFG.wait);
 }
 
-function fallback(platform){
+function showManual(os){
   $spinner.style.display = 'none';
-  $manual.style.display  = 'block';
-  if (platform === 'ios'){
-    $msg.textContent = 'Redirecting to the App Store…';
-    location.replace(CFG.iosStore);
-  }
-  else if (platform === 'android'){
-    $msg.textContent = 'Redirecting to Google Play…';
-    location.replace(CFG.playStore);
-  }
-  else {
-    $msg.textContent = 'Please open this link on your phone to install UAE Pass.';
+  $manual.style.display = 'block';
+  if (os === 'ios') {
+    $msg.textContent = 'If UAE Pass didn’t open, tap App Store below:';
+    // ⚠️ Do NOT auto-redirect; let user decide to open App Store.
+  } else if (os === 'android') {
+    $msg.textContent = 'If UAE Pass didn’t open, tap Google Play below:';
+  } else {
+    $msg.textContent = 'Please open this link on your phone and install UAE Pass.';
   }
 }
 
-window.addEventListener('load', attemptOpen);
+window.addEventListener('load', launch);
 </script>
 </body>
 </html>
