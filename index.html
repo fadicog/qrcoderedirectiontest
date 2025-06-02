@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>UAE Pass smart link</title>
+  <title>UAE Pass smart link</title>
 
-  <!-- iOS Smart-App-Banner (deeplink placeholder still TBD) -->
+  <!-- iOS Smart‑App‑Banner (deeplink placeholder still TBD) -->
   <meta name="apple-itunes-app" content="app-id=1377158818, app-argument=UAEPASS_IOS_DEEPLINK_HERE" />
 
   <style>
@@ -23,13 +23,13 @@
 </head>
 <body>
   <div class="card">
-    <h1>Opening UAE Pass…</h1>
+    <h1>Opening UAE Pass…</h1>
     <div id="msg">Checking your device&hellip;</div>
     <div class="spin" id="spinner"></div>
     <div class="links" id="manual">
       <p>If nothing happens, tap the right store:</p>
-      <a id="iosStore"     href="https://apps.apple.com/ae/app/uae-pass/id1377158818">App Store</a>
-      <a id="androidStore" href="https://play.google.com/store/apps/details?id=ae.uaepass.mainapp&hl=en">Google Play</a>
+      <a id="iosStore"     href="https://apps.apple.com/ae/app/uae-pass/id1377158818">App Store</a>
+      <a id="androidStore" href="https://play.google.com/store/apps/details?id=ae.uaepass.mainapp&hl=en">Google Play</a>
     </div>
   </div>
 
@@ -38,18 +38,18 @@
 //  CONFIGURE YOUR DEEPLINKS HERE
 // ————————————————————————————————————————————————
 const CFG = {
-  // Android production deep-link (opens if app is installed):
-  schemeAndroid: 'uaepass://presentment/?clientid=tdra_dv_insurance_mob_prod&requestid=dv12345678&successurl=&failureurl=',
+  // Android production deep‑link (opens if app is installed):
+  schemeAndroid: 'uaepass://presentment?clientid=tdra_dv_insurance_mob_prod&requestid=dv12345678&successurl=&failureurl=', // note: no extra slash before ?
 
-  // Intent URI (Chrome / Edge ≥25) – automatically falls back to Play Store if the package is missing
-  intentAndroid: 'intent://presentment/?clientid=tdra_dv_insurance_mob_prod&requestid=dv12345678&successurl=&failureurl=#Intent;scheme=uaepass;package=ae.uaepass.mainapp;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dae.uaepass.mainapp;end',
+  // Intent URI (Chrome / Edge ≥25) – automatically falls back to Play Store if the package is missing
+  intentAndroid: 'intent://presentment?clientid=tdra_dv_insurance_mob_prod&requestid=dv12345678&successurl=&failureurl=#Intent;scheme=uaepass;package=ae.uaepass.mainapp;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dae.uaepass.mainapp;end',
 
-  // iOS deep-link placeholder (fill in when you know it)
+  // iOS deep‑link placeholder (fill in when you know it)
   schemeIOS: 'UAEPASS_IOS_DEEPLINK_HERE',
 
   iosStore:  'https://apps.apple.com/ae/app/uae-pass/id1377158818',
   playStore: 'https://play.google.com/store/apps/details?id=ae.uaepass.mainapp&hl=en',
-  wait: 1600 // ms before considering the attempt failed
+  wait: 1600 // ms before considering the attempt failed
 };
 
 // ————————————————————————————————————————————————
@@ -88,15 +88,16 @@ function attemptOpen(){
   document.addEventListener('visibilitychange',() => { hidden = document.hidden; });
 
   if (platform === 'android'){
-    // 1) Chrome/Edge/Samsung Browser ≥ 25 - use intent://
-    location.href = CFG.intentAndroid;
+    // First try the plain scheme (works in most browsers)
+    location.href = CFG.schemeAndroid;
 
-    // 2) Older browsers (or if intent fails quickly) – fallback to scheme via iframe after a brief delay
-    setTimeout(() => openIframe(CFG.schemeAndroid), 150);
+    // After a short pause, issue an intent:// as a secondary attempt / fallback
+    setTimeout(() => {
+      if (!hidden) location.href = CFG.intentAndroid;
+    }, 300);
   }
   else if (platform === 'ios'){
     if (CFG.schemeIOS && CFG.schemeIOS !== 'UAEPASS_IOS_DEEPLINK_HERE'){
-      // Universal Link preferred, but scheme works if configured.
       location.href = CFG.schemeIOS;
     } else {
       fallback('ios'); return; // no scheme yet
@@ -106,7 +107,7 @@ function attemptOpen(){
     fallback('other'); return;
   }
 
-  // After WAIT ms, if page is still foreground → assume app did not launch.
+  // After WAIT ms, if page is still in foreground → app probably not launched
   setTimeout(() => {
     if (!hidden && Date.now() - start < CFG.wait + 400){
       fallback(platform);
@@ -118,15 +119,15 @@ function fallback(platform){
   $spinner.style.display = 'none';
   $manual.style.display  = 'block';
   if (platform === 'ios'){
-    $msg.textContent = 'Redirecting to the App Store…';
+    $msg.textContent = 'Redirecting to the App Store…';
     location.replace(CFG.iosStore);
   }
   else if (platform === 'android'){
-    $msg.textContent = 'Redirecting to Google Play…';
+    $msg.textContent = 'Redirecting to Google Play…';
     location.replace(CFG.playStore);
   }
   else {
-    $msg.textContent = 'Please open this link on your phone to install UAE Pass.';
+    $msg.textContent = 'Please open this link on your phone to install UAE Pass.';
   }
 }
 
