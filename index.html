@@ -1,13 +1,12 @@
-action=PRESENTMENT&clientid=tdra_dv_insurance_mob_prod&requestid=12345678
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>UAE Pass smart link2</title>
+  <title>UAE Pass smart link</title>
 
-  <!-- iOS Smart‑App‑Banner (deeplink placeholder still TBD) -->
-  <meta name="apple-itunes-app" content="app-id=1377158818, app-argument=UAEPASS_IOS_DEEPLINK_HERE" />
+  <!-- iOS Smart‑App‑Banner now points at the real deep link -->
+  <meta name="apple-itunes-app" content="app-id=1377158818, app-argument=uaepass://presentment?action=PRESENTMENT&clientid=tdra_dv_insurance_mob_prod&requestid=12345678" />
 
   <style>
     :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -40,13 +39,13 @@ action=PRESENTMENT&clientid=tdra_dv_insurance_mob_prod&requestid=12345678
 // ————————————————————————————————————————————————
 const CFG = {
   // Android production deep‑link (opens if app is installed):
-  schemeAndroid: 'uaepass://presentment?clientid=tdra_dv_insurance_mob_prod&requestid=dv12345678&successurl=&failureurl=', // note: no extra slash before ?
+  schemeAndroid: 'uaepass://presentment?clientid=tdra_dv_insurance_mob_prod&requestid=dv12345678&successurl=&failureurl=',
 
   // Intent URI (Chrome / Edge ≥25) – automatically falls back to Play Store if the package is missing
   intentAndroid: 'intent://presentment?clientid=tdra_dv_insurance_mob_prod&requestid=dv12345678&successurl=&failureurl=#Intent;scheme=uaepass;package=ae.uaepass.mainapp;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dae.uaepass.mainapp;end',
 
-  // iOS deep‑link placeholder (fill in when you know it)
-  schemeIOS: 'UAEPASS_IOS_DEEPLINK_HERE',
+  // iOS deep‑link provided by you:
+  schemeIOS: 'uaepass://presentment?action=PRESENTMENT&clientid=tdra_dv_insurance_mob_prod&requestid=12345678',
 
   iosStore:  'https://apps.apple.com/ae/app/uae-pass/id1377158818',
   playStore: 'https://play.google.com/store/apps/details?id=ae.uaepass.mainapp&hl=en',
@@ -89,20 +88,13 @@ function attemptOpen(){
   document.addEventListener('visibilitychange',() => { hidden = document.hidden; });
 
   if (platform === 'android'){
-    // First try the plain scheme (works in most browsers)
     location.href = CFG.schemeAndroid;
-
-    // After a short pause, issue an intent:// as a secondary attempt / fallback
     setTimeout(() => {
       if (!hidden) location.href = CFG.intentAndroid;
     }, 300);
   }
   else if (platform === 'ios'){
-    if (CFG.schemeIOS && CFG.schemeIOS !== 'UAEPASS_IOS_DEEPLINK_HERE'){
-      location.href = CFG.schemeIOS;
-    } else {
-      fallback('ios'); return; // no scheme yet
-    }
+    location.href = CFG.schemeIOS;
   }
   else {
     fallback('other'); return;
